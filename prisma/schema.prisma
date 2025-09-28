@@ -1,0 +1,63 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        BigInt   @id @default(autoincrement())
+  name      String
+  email     String   @unique(map: "index_users_on_email")
+  password  String
+  roleId    BigInt   @map("role_id")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@map("users")
+}
+
+model Role {
+  id           BigInt   @id @default(autoincrement())
+  name         String   @unique(map: "index_roles_on_name")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  isSuperAdmin Boolean  @default(false) @map("is_super_admin")
+
+  roleAuthorizations RoleAuthorization[]
+  users              User[]
+
+  @@map("roles")
+}
+
+model Authorization {
+  id            BigInt   @id @default(autoincrement())
+  name          String   @unique(map: "index_authorizations_on_name")
+  resourceName  String?  @map("resource_name")
+  attributeName String?  @map("attribute_name")
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  permission    String?  @map("locale_en")
+
+  roleAuthorizations RoleAuthorization[]
+
+  @@map("authorizations")
+}
+
+model RoleAuthorization {
+  id              BigInt   @id @default(autoincrement())
+  roleId          BigInt   @map("role_id")
+  authorizationId BigInt   @map("authorization_id")
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  role          Role          @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  authorization Authorization @relation(fields: [authorizationId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, authorizationId], map: "index_role_authorizations_on_role_id_and_authorization_id")
+  @@map("role_authorizations")
+}
